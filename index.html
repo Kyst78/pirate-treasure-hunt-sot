@@ -112,93 +112,150 @@ body {
 }
 
 /* ─────────────────────────────────────────────
-   COMPASS (top-right, SoT style)
+   COMPASS  — large, 8-direction, needle rotates
 ───────────────────────────────────────────── */
 .compass-wrap {
-  position: fixed; top: 20px; right: 20px; z-index: 50;
-  /* NO fake wobble — real compass controls rotation */
+  position: fixed; top: 16px; right: 16px; z-index: 50;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 5px;
+  filter: drop-shadow(0 4px 16px rgba(0,0,0,0.7));
 }
-.compass-outer {
-  width: 72px; height: 72px; border-radius: 50%;
+
+/* ── Outer decorative bezel (STATIC, never rotates) ── */
+.compass-bezel {
+  width: 140px; height: 140px; border-radius: 50%;
+  position: relative;
   background: conic-gradient(
-    #f4e9c8 0deg, #e8d49a 45deg,
-    #c9a96e 90deg, #e8d49a 135deg,
-    #f4e9c8 180deg, #c9a96e 225deg,
-    #e8d49a 270deg, #c9a96e 315deg,
-    #f4e9c8 360deg
+    #2a1e0a 0deg,   #1a1206 22.5deg,
+    #3a2a10 45deg,  #1a1206 67.5deg,
+    #2a1e0a 90deg,  #1a1206 112.5deg,
+    #3a2a10 135deg, #1a1206 157.5deg,
+    #2a1e0a 180deg, #1a1206 202.5deg,
+    #3a2a10 225deg, #1a1206 247.5deg,
+    #2a1e0a 270deg, #1a1206 292.5deg,
+    #3a2a10 315deg, #1a1206 337.5deg,
+    #2a1e0a 360deg
   );
   border: 3px solid var(--p4);
   box-shadow:
-    0 0 0 1px rgba(200,136,42,0.4),
-    0 0 16px rgba(200,136,42,0.35),
-    inset 0 0 12px rgba(0,0,0,0.3);
-  position: relative;
+    0 0 0 1px rgba(200,136,42,0.5),
+    0 0 0 3px rgba(80,50,10,0.8),
+    0 0 24px rgba(200,136,42,0.3),
+    inset 0 0 8px rgba(0,0,0,0.6);
   display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
 }
-/* The outer ring rotates so N always faces real North */
-.compass-outer.live {
-  transition: transform 0.3s ease-out;
+
+/* tick marks (drawn via SVG inside) */
+.compass-bezel svg.ticks {
+  position: absolute; inset: 0; width: 100%; height: 100%;
 }
-.compass-inner {
-  width: 56px; height: 56px; border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, #f0e8c8, #d4c090 60%, #b8a070 100%);
-  border: 1px solid var(--p3);
+
+/* ── Inner disc (STATIC — labels fixed to real directions) ── */
+.compass-disc {
+  width: 116px; height: 116px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%,
+    #e8ddb0 0%, #c8b878 45%, #a89050 75%, #887040 100%
+  );
+  border: 2px solid rgba(160,120,60,0.6);
   position: relative;
-  display: flex; align-items: center; justify-content: center;
+  box-shadow:
+    inset 0 2px 8px rgba(0,0,0,0.35),
+    inset 0 -1px 4px rgba(255,240,180,0.15);
 }
-.compass-dir {
-  position: absolute; font-family: 'IM Fell English', serif;
-  font-size: 8px; font-weight: bold; color: var(--ink);
-}
-.compass-dir.n { top: 4px; left: 50%; transform: translateX(-50%); color: var(--red); }
-.compass-dir.s { bottom: 4px; left: 50%; transform: translateX(-50%); }
-.compass-dir.e { right: 5px; top: 50%; transform: translateY(-50%); }
-.compass-dir.w { left: 5px;  top: 50%; transform: translateY(-50%); }
-/* Needle is fixed pointing up (always toward real N since ring rotates) */
-.compass-needle {
-  position: absolute; width: 3px; height: 44px;
-  top: 50%; left: 50%;
-  transform-origin: 50% 100%;
-  transform: translate(-50%, -100%) rotate(0deg);
-}
-.compass-needle::before {
+
+/* aged texture ring */
+.compass-disc::before {
   content: '';
-  display: block; width: 3px; height: 22px;
-  background: linear-gradient(to bottom, var(--red), #a01010);
-  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  position: absolute; inset: 4px; border-radius: 50%;
+  border: 1px solid rgba(160,120,60,0.4);
 }
-.compass-needle::after {
-  content: '';
-  display: block; width: 3px; height: 22px;
-  background: linear-gradient(to bottom, #d0c8b8, #a09888);
-  clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
-}
-.compass-dot {
-  position: absolute; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--ink); z-index: 2;
-}
-/* Fallback idle sway when no sensor available */
-@keyframes needleSway {
-  0%,100% { transform: translate(-50%, -100%) rotate(8deg); }
-  50%      { transform: translate(-50%, -100%) rotate(-8deg); }
-}
-.compass-needle.idle {
-  animation: needleSway 3.5s ease-in-out infinite;
-}
-/* Status badge below compass */
-.compass-status {
-  margin-top: 5px;
-  text-align: center;
+
+/* degree ring text — positioned around the disc edge */
+.compass-disc-dir {
+  position: absolute;
   font-family: 'IM Fell English', serif;
-  font-size: 8px;
+  font-weight: bold;
+  transform-origin: 50% 50%;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+/* Cardinal — larger */
+.compass-disc-dir.cardinal {
+  font-size: 13px;
+  color: var(--ink);
+}
+.compass-disc-dir.cardinal.north { color: var(--red); }
+/* Intercardinal — smaller */
+.compass-disc-dir.inter {
+  font-size: 9px;
+  color: var(--ink2);
+  opacity: 0.85;
+}
+
+/* ── Needle layer (ROTATES with heading) ── */
+.compass-needle-layer {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  /* JS sets transform: rotate(Xdeg) here */
+  transition: transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.compass-needle-layer.idle {
+  animation: needleSway 3s ease-in-out infinite;
+}
+@keyframes needleSway {
+  0%,100% { transform: rotate(12deg);  }
+  50%      { transform: rotate(-12deg); }
+}
+
+/* Needle shape drawn via SVG */
+.compass-needle-layer svg.needle-svg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  overflow: visible;
+}
+
+/* ── Center pivot cap ── */
+.compass-pivot {
+  position: absolute;
+  width: 14px; height: 14px; border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: radial-gradient(circle at 40% 35%, #e8d080, #a07820 60%, #604808 100%);
+  border: 1.5px solid #302010;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,240,180,0.4);
+  z-index: 5;
+}
+
+/* ── Heading readout below compass ── */
+.compass-readout {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.compass-deg {
+  font-family: 'IM Fell English', serif;
+  font-size: 18px; font-weight: bold;
+  color: var(--gold3);
+  text-shadow: 0 0 10px rgba(240,192,96,0.6), 0 1px 3px rgba(0,0,0,0.9);
   letter-spacing: 1px;
-  color: rgba(200,160,80,0.7);
+  line-height: 1;
+  min-width: 52px; text-align: center;
+}
+.compass-dir-label {
+  font-family: 'IM Fell English', serif;
+  font-size: 13px; font-weight: bold;
+  color: var(--p2);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.compass-status {
+  font-family: 'IM Fell English', serif;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: rgba(200,160,80,0.6);
   text-shadow: 0 1px 2px rgba(0,0,0,0.8);
   transition: color 0.5s;
-  min-height: 10px;
 }
-.compass-status.live-ok { color: #80c860; }
-.compass-status.live-err { color: rgba(200,160,80,0.5); }
+.compass-status.live-ok  { color: #80c860; }
+.compass-status.live-err { color: rgba(180,80,60,0.7); }
 
 /* ─────────────────────────────────────────────
    MAIN WRAPPER
@@ -864,19 +921,107 @@ body {
 </div>
 
 <!-- ── COMPASS ── -->
-<div class="compass-wrap">
-  <div class="compass-outer" id="compassOuter">
-    <div class="compass-inner">
-      <span class="compass-dir n">N</span>
-      <span class="compass-dir s">S</span>
-      <span class="compass-dir e">E</span>
-      <span class="compass-dir w">W</span>
-      <div class="compass-needle idle" id="compassNeedle"></div>
-      <div class="compass-dot"></div>
-    </div>
+<div class="compass-wrap" id="compassWrap">
+
+  <div class="compass-bezel" id="compassBezel">
+
+    <!-- tick marks SVG (static on bezel) -->
+    <svg class="ticks" viewBox="0 0 140 140">
+      <!-- major ticks at 45° intervals -->
+      <line x1="70" y1="4"  x2="70" y2="14" stroke="#c9a96e" stroke-width="2.5" transform="rotate(0   70 70)"/>
+      <line x1="70" y1="4"  x2="70" y2="14" stroke="#c9a96e" stroke-width="2.5" transform="rotate(45  70 70)"/>
+      <line x1="70" y1="4"  x2="70" y2="14" stroke="#c9a96e" stroke-width="2.5" transform="rotate(90  70 70)"/>
+      <line x1="70" y1="4"  x2="70" y2="14" stroke="#c9a96e" stroke-width="2.5" transform="rotate(135 70 70)"/>
+      <line x1="70" y1="4"  x2="70" y2="14" stroke="#c9a96e" stroke-width="2.5" transform="rotate(180 70 70)"/>
+      <line x1="70" y1="4"  x2="70" y2="14" stroke="#c9a96e" stroke-width="2.5" transform="rotate(225 70 70)"/>
+      <line x1="70" y1="4"  x2="70" y2="14" stroke="#c9a96e" stroke-width="2.5" transform="rotate(270 70 70)"/>
+      <line x1="70" y1="4"  x2="70" y2="14" stroke="#c9a96e" stroke-width="2.5" transform="rotate(315 70 70)"/>
+      <!-- minor ticks at 22.5° intervals -->
+      <line x1="70" y1="5"  x2="70" y2="11" stroke="#a07840" stroke-width="1.2" transform="rotate(22.5  70 70)"/>
+      <line x1="70" y1="5"  x2="70" y2="11" stroke="#a07840" stroke-width="1.2" transform="rotate(67.5  70 70)"/>
+      <line x1="70" y1="5"  x2="70" y2="11" stroke="#a07840" stroke-width="1.2" transform="rotate(112.5 70 70)"/>
+      <line x1="70" y1="5"  x2="70" y2="11" stroke="#a07840" stroke-width="1.2" transform="rotate(157.5 70 70)"/>
+      <line x1="70" y1="5"  x2="70" y2="11" stroke="#a07840" stroke-width="1.2" transform="rotate(202.5 70 70)"/>
+      <line x1="70" y1="5"  x2="70" y2="11" stroke="#a07840" stroke-width="1.2" transform="rotate(247.5 70 70)"/>
+      <line x1="70" y1="5"  x2="70" y2="11" stroke="#a07840" stroke-width="1.2" transform="rotate(292.5 70 70)"/>
+      <line x1="70" y1="5"  x2="70" y2="11" stroke="#a07840" stroke-width="1.2" transform="rotate(337.5 70 70)"/>
+      <!-- extra tiny ticks every 11.25° -->
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(11.25  70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(33.75  70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(56.25  70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(78.75  70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(101.25 70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(123.75 70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(146.25 70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(168.75 70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(191.25 70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(213.75 70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(236.25 70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(258.75 70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(281.25 70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(303.75 70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(326.25 70 70)"/>
+      <line x1="70" y1="6" x2="70" y2="10" stroke="#806030" stroke-width="0.8" transform="rotate(348.75 70 70)"/>
+      <!-- North triangle indicator on bezel -->
+      <polygon points="70,2 73.5,9 66.5,9" fill="#c9a96e" opacity="0.8"/>
+    </svg>
+
+    <!-- Inner disc with 8 direction labels (STATIC) -->
+    <div class="compass-disc" id="compassDisc">
+
+      <!-- Cardinal directions -->
+      <span class="compass-disc-dir cardinal north"  style="top:6px;  left:50%; transform:translateX(-50%)">N</span>
+      <span class="compass-disc-dir cardinal"         style="bottom:6px;left:50%; transform:translateX(-50%)">S</span>
+      <span class="compass-disc-dir cardinal"         style="right:7px;top:50%; transform:translateY(-50%)">E</span>
+      <span class="compass-disc-dir cardinal"         style="left:7px; top:50%; transform:translateY(-50%)">W</span>
+
+      <!-- Intercardinal directions (45°) -->
+      <span class="compass-disc-dir inter" style="top:17px;  right:17px; transform:translate(50%,-50%)">NE</span>
+      <span class="compass-disc-dir inter" style="bottom:17px;right:17px;transform:translate(50%,50%)">SE</span>
+      <span class="compass-disc-dir inter" style="bottom:17px;left:17px; transform:translate(-50%,50%)">SW</span>
+      <span class="compass-disc-dir inter" style="top:17px;  left:17px;  transform:translate(-50%,-50%)">NW</span>
+
+      <!-- Needle layer — THIS rotates -->
+      <div class="compass-needle-layer idle" id="compassNeedle">
+        <svg class="needle-svg" viewBox="0 0 116 116">
+          <!-- North tip (red) — upward triangle -->
+          <polygon points="58,8 63,58 53,58"
+            fill="url(#needleRedGrad)" stroke="#5a0808" stroke-width="0.8"/>
+          <!-- South tip (white/silver) — downward triangle -->
+          <polygon points="58,108 63,58 53,58"
+            fill="url(#needleWhiteGrad)" stroke="#606060" stroke-width="0.8"/>
+          <!-- diamond highlight on north -->
+          <polygon points="58,8 60,30 58,34 56,30"
+            fill="rgba(255,200,200,0.35)"/>
+          <defs>
+            <linearGradient id="needleRedGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stop-color="#c01010"/>
+              <stop offset="40%"  stop-color="#e82020"/>
+              <stop offset="100%" stop-color="#8a0808"/>
+            </linearGradient>
+            <linearGradient id="needleWhiteGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stop-color="#b0a898"/>
+              <stop offset="40%"  stop-color="#e8e0d0"/>
+              <stop offset="100%" stop-color="#908880"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      <!-- Center pivot cap -->
+      <div class="compass-pivot"></div>
+
+    </div><!-- /compass-disc -->
+  </div><!-- /compass-bezel -->
+
+  <!-- Heading readout -->
+  <div class="compass-readout">
+    <div class="compass-deg"       id="compassDeg">---°</div>
+    <div class="compass-dir-label" id="compassDirLabel">— — —</div>
+    <div class="compass-status"    id="compassStatus">⏳</div>
   </div>
-  <div class="compass-status" id="compassStatus">⏳</div>
-</div>
+
+</div><!-- /compass-wrap -->
 
 <!-- ════════════════════════════════════════════
      GAME WRAPPER
@@ -1315,107 +1460,116 @@ body {
 <script>
 /* ═══════════════════════════════════════════
    REAL COMPASS  (DeviceOrientationEvent)
-   ─ Works on iOS 13+ (requires permission)
-   ─ Works on Android Chrome automatically
-   ─ Falls back to idle sway if unavailable
+   ─ NEEDLE rotates to point to real North
+   ─ Disc & labels stay fixed
+   ─ iOS 13+: tap to request permission
+   ─ Android: auto-start
+   ─ Fallback: idle sway
 ═══════════════════════════════════════════ */
 (function initCompass() {
-  const outer   = document.getElementById('compassOuter');
-  const needle  = document.getElementById('compassNeedle');
-  const status  = document.getElementById('compassStatus');
-  let isLive    = false;
-  let lastAngle = 0;
+  const needle   = document.getElementById('compassNeedle');
+  const bezel    = document.getElementById('compassBezel');
+  const degEl    = document.getElementById('compassDeg');
+  const dirEl    = document.getElementById('compassDirLabel');
+  const status   = document.getElementById('compassStatus');
+  let isLive     = false;
+  let lastHeading = 0;
+  let rafPending  = false;
+  let targetHeading = 0;
 
-  /* ── smooth angle interpolation ── */
-  function setRingAngle(deg) {
-    // rotate the OUTER ring so N label always points to real North
-    // i.e. ring rotates opposite to heading
-    outer.style.transform = `rotate(${-deg}deg)`;
+  /* ── 8-direction name from heading ── */
+  const DIR_NAMES = ['N','NE','E','SE','S','SW','W','NW'];
+  const DIR_THAI  = ['เหนือ','ตอ.เหนือ','ตะวันออก','ตอ.ใต้','ใต้','ตต.ใต้','ตะวันตก','ตต.เหนือ'];
+  function headingToDir(h) {
+    const idx = Math.round(h / 45) % 8;
+    return DIR_NAMES[idx] + ' · ' + DIR_THAI[idx];
   }
 
-  /* ── handle orientation event ── */
-  function handleOrientation(e) {
-    // webkitCompassHeading = degrees clockwise from magnetic North (iOS)
-    // alpha = degrees the device has rotated around Z-axis (Android, 0=North)
-    let heading = null;
+  /* ── update needle rotation + readout ── */
+  function applyHeading(h) {
+    // needle points toward North: if heading=30° (device faces NNE), needle rotates -30° to still point N
+    needle.style.transform = `rotate(${-h}deg)`;
+    degEl.textContent  = Math.round(h) + '°';
+    dirEl.textContent  = headingToDir(Math.round(h));
+  }
 
-    if (e.webkitCompassHeading != null && !isNaN(e.webkitCompassHeading)) {
-      heading = e.webkitCompassHeading; // iOS — already magnetic heading
-    } else if (e.alpha != null) {
-      // Android: alpha is CCW from North, convert to CW heading
-      heading = (360 - e.alpha) % 360;
+  /* ── smooth RAF loop ── */
+  function tick() {
+    rafPending = false;
+    // shortest path
+    let diff = targetHeading - lastHeading;
+    if (diff >  180) diff -= 360;
+    if (diff < -180) diff += 360;
+    lastHeading += diff * 0.25; // lerp factor
+    applyHeading(lastHeading);
+    if (Math.abs(diff) > 0.2) {
+      rafPending = true;
+      requestAnimationFrame(tick);
     }
+  }
 
+  /* ── handle sensor event ── */
+  function handleOrientation(e) {
+    let heading = null;
+    if (e.webkitCompassHeading != null && !isNaN(e.webkitCompassHeading)) {
+      heading = e.webkitCompassHeading;           // iOS magnetic heading
+    } else if (e.alpha != null) {
+      heading = (360 - e.alpha + 360) % 360;      // Android: CCW→CW
+    }
     if (heading == null) return;
 
-    // Only activate once we get a real reading
     if (!isLive) {
       isLive = true;
       needle.classList.remove('idle');
-      needle.style.transform = 'translate(-50%, -100%) rotate(0deg)';
-      outer.classList.add('live');
-      status.textContent = '● LIVE';
-      status.className = 'compass-status live-ok';
+      status.textContent  = '● LIVE';
+      status.className    = 'compass-status live-ok';
+      lastHeading = heading;
+      targetHeading = heading;
+      applyHeading(heading);
     }
 
-    // Smooth shortest-path rotation
-    let diff = heading - lastAngle;
-    if (diff >  180) diff -= 360;
-    if (diff < -180) diff += 360;
-    lastAngle += diff;
-
-    setRingAngle(lastAngle);
-  }
-
-  /* ── iOS 13+ requires permission request ── */
-  function requestIOSPermission() {
-    if (typeof DeviceOrientationEvent !== 'undefined' &&
-        typeof DeviceOrientationEvent.requestPermission === 'function') {
-      DeviceOrientationEvent.requestPermission()
-        .then(state => {
-          if (state === 'granted') {
-            window.addEventListener('deviceorientation', handleOrientation, true);
-            status.textContent = '● LIVE';
-          } else {
-            fallback();
-          }
-        })
-        .catch(fallback);
+    targetHeading = heading;
+    if (!rafPending) {
+      rafPending = true;
+      requestAnimationFrame(tick);
     }
   }
 
-  /* ── fallback: idle sway ── */
+  /* ── iOS 13+ permission ── */
+  function requestIOS() {
+    DeviceOrientationEvent.requestPermission()
+      .then(state => {
+        if (state === 'granted') {
+          window.addEventListener('deviceorientation', handleOrientation, true);
+          status.textContent = '● LIVE';
+          status.className   = 'compass-status live-ok';
+        } else { fallback(); }
+      }).catch(fallback);
+  }
+
+  /* ── fallback ── */
   function fallback() {
     status.textContent = 'ไม่มีเซนเซอร์';
-    status.className = 'compass-status live-err';
+    status.className   = 'compass-status live-err';
+    degEl.textContent  = '---°';
+    dirEl.textContent  = '— — —';
     needle.classList.add('idle');
   }
 
-  /* ── tap compass to trigger iOS permission ── */
-  outer.style.cursor = 'pointer';
-  outer.addEventListener('click', function() {
-    if (isLive) return; // already live
-    if (typeof DeviceOrientationEvent !== 'undefined' &&
-        typeof DeviceOrientationEvent.requestPermission === 'function') {
-      // iOS 13+ — must be triggered by user gesture
-      requestIOSPermission();
-    }
+  /* ── tap bezel → iOS permission ── */
+  bezel.addEventListener('click', () => {
+    if (isLive) return;
+    if (typeof DeviceOrientationEvent?.requestPermission === 'function') requestIOS();
   });
 
-  /* ── Auto-start for non-iOS (Android, desktop) ── */
+  /* ── auto-start non-iOS ── */
   if (typeof DeviceOrientationEvent !== 'undefined') {
     if (typeof DeviceOrientationEvent.requestPermission !== 'function') {
-      // Android / non-iOS: attach directly
       window.addEventListener('deviceorientation', handleOrientation, true);
-      // show tap hint until first reading
       status.textContent = 'รอสัญญาณ...';
-      setTimeout(() => {
-        if (!isLive) fallback();
-      }, 3000);
+      setTimeout(() => { if (!isLive) fallback(); }, 3500);
     } else {
-      // iOS: show tap prompt
       status.textContent = '🧭 แตะเพื่อเปิด';
-      status.className = 'compass-status';
     }
   } else {
     fallback();
