@@ -1,0 +1,1820 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>การล่าสมบัติโจรสลัด</title>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+DW+Pica:ital@0;1&family=Sarabun:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+
+/* ─────────────────────────────────────────────
+   ROOT / RESET
+───────────────────────────────────────────── */
+:root {
+  --p0: #fdf6e3;   /* lightest parchment */
+  --p1: #f4e9c8;   /* parchment base */
+  --p2: #e8d49a;   /* parchment mid */
+  --p3: #c9a96e;   /* parchment dark */
+  --p4: #a07840;   /* parchment edge */
+  --ink: #2b1e0e;
+  --ink2: #4a3420;
+  --ink3: #6b4c2a;
+  --gold: #c8882a;
+  --gold2: #e8a830;
+  --gold3: #f0c060;
+  --red:  #7a1a0a;
+  --blue: #1a3a5a;
+  --fade: rgba(43,30,14,0.08);
+  --shadow: rgba(43,30,14,0.55);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  min-height: 100vh;
+  background: #1a1008;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  font-family: 'Sarabun', sans-serif;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ─────────────────────────────────────────────
+   TABLE BACKGROUND  (like SoT map table)
+───────────────────────────────────────────── */
+.table-bg {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 30%, #3d2408 0%, #1a0e04 60%, #0e0804 100%);
+}
+/* wood grain lines */
+.table-bg::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(
+    92deg,
+    transparent 0px,
+    transparent 18px,
+    rgba(255,200,100,0.018) 18px,
+    rgba(255,200,100,0.018) 19px
+  ),
+  repeating-linear-gradient(
+    88deg,
+    transparent 0px,
+    transparent 34px,
+    rgba(0,0,0,0.06) 34px,
+    rgba(0,0,0,0.06) 35px
+  );
+}
+/* ambient light from top */
+.table-bg::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(255,200,80,0.12) 0%, transparent 70%);
+}
+
+/* ─────────────────────────────────────────────
+   CANDLE LIGHTS (decorative)
+───────────────────────────────────────────── */
+.candle {
+  position: fixed; z-index: 5;
+  width: 6px;
+  pointer-events: none;
+}
+.candle-left  { left: 8vw;  top: 5vh; }
+.candle-right { right: 8vw; top: 5vh; }
+.candle-flame {
+  width: 10px; height: 16px;
+  background: radial-gradient(ellipse at 50% 80%, #fff8c0, #ffa020 50%, transparent 100%);
+  border-radius: 50% 50% 20% 20%;
+  margin: 0 auto;
+  animation: flicker 1.8s ease-in-out infinite alternate;
+  filter: blur(0.5px);
+  box-shadow: 0 0 12px 4px rgba(255,160,32,0.6), 0 0 30px 10px rgba(255,120,0,0.25);
+}
+.candle-body {
+  width: 6px; height: 60px;
+  background: linear-gradient(180deg, #f0e8d0, #d4c8a0);
+  margin: 0 auto;
+  border-radius: 1px;
+  box-shadow: inset -1px 0 2px rgba(0,0,0,0.2);
+}
+@keyframes flicker {
+  0%   { transform: scaleX(1) scaleY(1) rotate(-1deg);   opacity: 0.95; }
+  30%  { transform: scaleX(0.9) scaleY(1.1) rotate(1deg); opacity: 1; }
+  60%  { transform: scaleX(1.1) scaleY(0.95) rotate(-2deg); opacity: 0.9; }
+  100% { transform: scaleX(0.95) scaleY(1.05) rotate(1.5deg); opacity: 1; }
+}
+
+/* ─────────────────────────────────────────────
+   COMPASS (top-right, SoT style)
+───────────────────────────────────────────── */
+.compass-wrap {
+  position: fixed; top: 20px; right: 20px; z-index: 50;
+  /* NO fake wobble — real compass controls rotation */
+}
+.compass-outer {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: conic-gradient(
+    #f4e9c8 0deg, #e8d49a 45deg,
+    #c9a96e 90deg, #e8d49a 135deg,
+    #f4e9c8 180deg, #c9a96e 225deg,
+    #e8d49a 270deg, #c9a96e 315deg,
+    #f4e9c8 360deg
+  );
+  border: 3px solid var(--p4);
+  box-shadow:
+    0 0 0 1px rgba(200,136,42,0.4),
+    0 0 16px rgba(200,136,42,0.35),
+    inset 0 0 12px rgba(0,0,0,0.3);
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+/* The outer ring rotates so N always faces real North */
+.compass-outer.live {
+  transition: transform 0.3s ease-out;
+}
+.compass-inner {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #f0e8c8, #d4c090 60%, #b8a070 100%);
+  border: 1px solid var(--p3);
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.compass-dir {
+  position: absolute; font-family: 'IM Fell English', serif;
+  font-size: 8px; font-weight: bold; color: var(--ink);
+}
+.compass-dir.n { top: 4px; left: 50%; transform: translateX(-50%); color: var(--red); }
+.compass-dir.s { bottom: 4px; left: 50%; transform: translateX(-50%); }
+.compass-dir.e { right: 5px; top: 50%; transform: translateY(-50%); }
+.compass-dir.w { left: 5px;  top: 50%; transform: translateY(-50%); }
+/* Needle is fixed pointing up (always toward real N since ring rotates) */
+.compass-needle {
+  position: absolute; width: 3px; height: 44px;
+  top: 50%; left: 50%;
+  transform-origin: 50% 100%;
+  transform: translate(-50%, -100%) rotate(0deg);
+}
+.compass-needle::before {
+  content: '';
+  display: block; width: 3px; height: 22px;
+  background: linear-gradient(to bottom, var(--red), #a01010);
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+}
+.compass-needle::after {
+  content: '';
+  display: block; width: 3px; height: 22px;
+  background: linear-gradient(to bottom, #d0c8b8, #a09888);
+  clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+}
+.compass-dot {
+  position: absolute; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ink); z-index: 2;
+}
+/* Fallback idle sway when no sensor available */
+@keyframes needleSway {
+  0%,100% { transform: translate(-50%, -100%) rotate(8deg); }
+  50%      { transform: translate(-50%, -100%) rotate(-8deg); }
+}
+.compass-needle.idle {
+  animation: needleSway 3.5s ease-in-out infinite;
+}
+/* Status badge below compass */
+.compass-status {
+  margin-top: 5px;
+  text-align: center;
+  font-family: 'IM Fell English', serif;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: rgba(200,160,80,0.7);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  transition: color 0.5s;
+  min-height: 10px;
+}
+.compass-status.live-ok { color: #80c860; }
+.compass-status.live-err { color: rgba(200,160,80,0.5); }
+
+/* ─────────────────────────────────────────────
+   MAIN WRAPPER
+───────────────────────────────────────────── */
+.game-wrap {
+  position: relative; z-index: 10;
+  width: 100%; max-width: 680px;
+  min-height: 100vh;
+  padding: 24px 16px 80px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 0;
+}
+
+/* ─────────────────────────────────────────────
+   SoT TITLE HEADER (like game title screen)
+───────────────────────────────────────────── */
+.sot-header {
+  text-align: center;
+  margin-bottom: 28px;
+  padding-top: 8px;
+}
+.sot-title-line {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  margin-bottom: 2px;
+}
+.sot-title-line .deco-line {
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  max-width: 80px;
+}
+.sot-title {
+  font-family: 'IM Fell English', serif;
+  font-size: clamp(18px, 4.5vw, 28px);
+  color: var(--gold3);
+  text-shadow:
+    0 0 20px rgba(240,192,96,0.7),
+    0 2px 4px rgba(0,0,0,0.8),
+    1px 1px 0 rgba(0,0,0,0.9);
+  letter-spacing: 3px;
+  line-height: 1.2;
+}
+.sot-subtitle {
+  font-family: 'IM Fell English', serif;
+  font-size: clamp(9px, 2vw, 12px);
+  color: var(--p3);
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  margin-top: 4px;
+  opacity: 0.8;
+}
+
+/* ─────────────────────────────────────────────
+   STAGE TRACK  (like quest log dots)
+───────────────────────────────────────────── */
+.stage-track {
+  display: flex; align-items: center; gap: 0;
+  margin-bottom: 28px;
+  padding: 0 4px;
+}
+.pip {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid var(--p3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  transition: all 0.5s;
+  position: relative;
+}
+.pip.done {
+  background: var(--gold);
+  border-color: var(--gold2);
+  box-shadow: 0 0 10px rgba(200,136,42,0.6);
+  color: var(--ink);
+}
+.pip.active {
+  background: rgba(200,136,42,0.15);
+  border-color: var(--gold3);
+  color: var(--gold3);
+  animation: pipGlow 2s ease-in-out infinite;
+}
+.pip.locked { background: rgba(43,30,14,0.4); color: rgba(200,160,80,0.3); border-color: rgba(200,160,80,0.2); }
+@keyframes pipGlow {
+  0%,100% { box-shadow: 0 0 6px rgba(240,192,96,0.3); }
+  50%      { box-shadow: 0 0 18px rgba(240,192,96,0.8); }
+}
+.pip-line {
+  height: 2px; flex: 1;
+  background: rgba(200,160,80,0.2);
+  transition: all 0.5s;
+}
+.pip-line.done { background: var(--gold); box-shadow: 0 0 4px rgba(200,136,42,0.5); }
+
+/* ─────────────────────────────────────────────
+   SCROLL / DOCUMENT CARD  (SoT merchant order style)
+───────────────────────────────────────────── */
+.scroll-card {
+  width: 100%;
+  position: relative;
+  animation: scrollUnfurl 0.7s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes scrollUnfurl {
+  from { opacity: 0; transform: scaleY(0.6) translateY(-30px); transform-origin: top; }
+  to   { opacity: 1; transform: scaleY(1) translateY(0); }
+}
+
+/* scroll top curl */
+.scroll-top, .scroll-bottom {
+  width: 100%;
+  height: 28px;
+  background: linear-gradient(180deg, #b89050 0%, #d4a860 40%, #e8c880 100%);
+  border-radius: 60% 60% 0 0 / 100% 100% 0 0;
+  position: relative;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+}
+.scroll-bottom {
+  border-radius: 0 0 60% 60% / 0 0 100% 100%;
+  background: linear-gradient(180deg, #e8c880 0%, #d4a860 60%, #b89050 100%);
+  box-shadow: 0 -3px 8px rgba(0,0,0,0.4);
+}
+.scroll-top::before, .scroll-bottom::after {
+  content: '';
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%,-50%);
+  width: 40%; height: 3px;
+  background: rgba(160,120,60,0.5);
+  border-radius: 2px;
+}
+
+.scroll-body {
+  background:
+    /* noise */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E"),
+    /* stain */
+    radial-gradient(ellipse 60% 40% at 70% 30%, rgba(160,120,60,0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 50% at 20% 80%, rgba(140,100,40,0.1)  0%, transparent 60%),
+    /* base */
+    linear-gradient(175deg, #f8f0d8 0%, #f2e8c8 25%, #eedcb0 55%, #f0e4c0 80%, #f5eccc 100%);
+  border-left:  5px solid #b89050;
+  border-right: 5px solid #b89050;
+  padding: 22px 28px 26px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* aged edge vignette */
+.scroll-body::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(90deg,  rgba(100,70,20,0.15) 0%, transparent 15%, transparent 85%, rgba(100,70,20,0.15) 100%),
+    linear-gradient(180deg, rgba(100,70,20,0.08) 0%, transparent 12%, transparent 88%, rgba(100,70,20,0.12) 100%);
+}
+
+/* ─────────────────────────────────────────────
+   INSIDE SCROLL — TYPOGRAPHY  (SoT doc style)
+───────────────────────────────────────────── */
+.doc-header {
+  text-align: center;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(160,120,60,0.4);
+}
+.doc-org {
+  font-family: 'IM Fell English', serif;
+  font-size: 10px;
+  letter-spacing: 4px;
+  color: var(--ink2);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  opacity: 0.7;
+}
+.doc-stage-name {
+  font-family: 'IM Fell English', serif;
+  font-size: clamp(17px, 4vw, 22px);
+  color: var(--ink);
+  line-height: 1.3;
+  margin-bottom: 0;
+}
+.doc-stage-sub {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: clamp(12px, 2.5vw, 14px);
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+/* SoT ornament separator */
+.sot-sep {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; margin: 12px 0;
+}
+.sot-sep::before, .sot-sep::after {
+  content: '';
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(160,120,60,0.5));
+}
+.sot-sep::after { transform: scaleX(-1); }
+.sot-sep span { font-size: 12px; color: var(--gold); opacity: 0.8; }
+
+/* body text */
+.doc-body {
+  font-family: 'Sarabun', sans-serif;
+  font-size: clamp(14px, 3.2vw, 16px);
+  color: var(--ink);
+  line-height: 1.9;
+  font-weight: 300;
+}
+.doc-body b, .doc-body strong {
+  font-weight: 700;
+  color: var(--red);
+  font-family: 'IM Fell English', serif;
+  font-size: 1.05em;
+}
+
+/* registry box (like SoT "Registry of Goods") */
+.registry-box {
+  margin: 14px 0;
+  border: 1px solid rgba(160,120,60,0.5);
+  border-radius: 2px;
+  padding: 12px 16px;
+  background: rgba(200,160,80,0.06);
+  position: relative;
+}
+.registry-label {
+  position: absolute; top: -9px; left: 14px;
+  background: linear-gradient(180deg, #f2e8c8, #eedcb0);
+  padding: 0 8px;
+  font-family: 'IM Fell English', serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--ink2);
+  text-transform: uppercase;
+}
+.puzzle-text {
+  font-family: 'Sarabun', sans-serif;
+  font-size: clamp(14px, 3vw, 15.5px);
+  color: var(--ink);
+  line-height: 1.85;
+  font-weight: 400;
+}
+
+/* answer row */
+.answer-row {
+  display: flex; gap: 10px; margin-top: 14px;
+  flex-wrap: wrap;
+}
+.sot-input {
+  flex: 1; min-width: 80px;
+  padding: 9px 14px;
+  font-family: 'IM Fell English', serif;
+  font-size: 18px;
+  text-align: center;
+  background: rgba(255,255,255,0.45);
+  border: 1px solid var(--p3);
+  border-bottom: 2px solid var(--p4);
+  border-radius: 1px;
+  color: var(--ink);
+  outline: none;
+  transition: all 0.3s;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.08);
+}
+.sot-input:focus {
+  border-color: var(--gold2);
+  background: rgba(255,255,255,0.65);
+  box-shadow: 0 0 0 2px rgba(200,136,42,0.25), inset 0 2px 5px rgba(0,0,0,0.08);
+}
+.sot-input.shake { animation: shake 0.4s ease; border-color: var(--red); }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-7px); }
+  40%      { transform: translateX(7px); }
+  60%      { transform: translateX(-5px); }
+  80%      { transform: translateX(5px); }
+}
+
+/* ─────────────────────────────────────────────
+   BUTTONS  (SoT parchment button style)
+───────────────────────────────────────────── */
+.sot-btn {
+  padding: 9px 20px;
+  font-family: 'IM Fell English', serif;
+  font-size: clamp(12px, 2.8vw, 14px);
+  letter-spacing: 1px;
+  border: none; cursor: pointer;
+  position: relative; overflow: hidden;
+  transition: all 0.2s;
+  border-radius: 1px;
+  white-space: nowrap;
+}
+.sot-btn::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 50%);
+  pointer-events: none;
+}
+.sot-btn:active { transform: translateY(1px); }
+
+.btn-gold {
+  background: linear-gradient(180deg, #d4982c 0%, #b07820 60%, #906010 100%);
+  color: #fff8e8;
+  border: 1px solid #805010;
+  border-bottom: 3px solid #604008;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,240,180,0.3);
+}
+.btn-gold:hover {
+  background: linear-gradient(180deg, #e8a830 0%, #c88020 60%, #a07018 100%);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4), 0 0 16px rgba(200,136,42,0.4);
+  transform: translateY(-1px);
+}
+.btn-dark {
+  background: linear-gradient(180deg, #3a2a14 0%, #261a0c 100%);
+  color: var(--p2);
+  border: 1px solid #1a1006;
+  border-bottom: 3px solid #0e0804;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+}
+.btn-dark:hover {
+  background: linear-gradient(180deg, #4a3a20 0%, #362a14 100%);
+  transform: translateY(-1px);
+}
+.btn-green {
+  background: linear-gradient(180deg, #2a4a1a 0%, #1a3010 100%);
+  color: #c8f0b0;
+  border: 1px solid #142208;
+  border-bottom: 3px solid #0c1806;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+}
+.btn-red {
+  background: linear-gradient(180deg, #6a1a0a 0%, #480e06 100%);
+  color: #f0c8c0;
+  border: 1px solid #320806;
+  border-bottom: 3px solid #200404;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+}
+.btn-red:hover { transform: translateY(-1px); background: linear-gradient(180deg, #8a2a14 0%, #600e08 100%); }
+
+/* error message */
+.err-msg {
+  display: none;
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--red);
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-left: 3px solid var(--red);
+  background: rgba(122,26,10,0.07);
+}
+
+/* revealed clue */
+.clue-box {
+  display: none;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(160,120,60,0.5);
+  background: rgba(200,160,80,0.08);
+  border-radius: 1px;
+  animation: clueAppear 0.7s cubic-bezier(0.34,1.56,0.64,1) both;
+  position: relative;
+}
+.clue-box::before {
+  content: attr(data-label);
+  position: absolute; top: -9px; left: 14px;
+  background: linear-gradient(180deg, #f2e8c8, #eedcb0);
+  padding: 0 8px;
+  font-family: 'IM Fell English', serif;
+  font-size: 10px; letter-spacing: 3px;
+  color: var(--gold); text-transform: uppercase;
+}
+@keyframes clueAppear {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* by official order signature */
+.doc-footer {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(160,120,60,0.35);
+  display: flex; justify-content: space-between; align-items: flex-end;
+}
+.official-order {
+  font-family: 'IM Fell English', serif;
+  font-size: 10px; letter-spacing: 3px;
+  color: var(--ink3); text-transform: uppercase;
+  opacity: 0.6;
+}
+.signature {
+  font-family: 'IM Fell DW Pica', serif;
+  font-style: italic;
+  font-size: 22px;
+  color: var(--ink);
+  opacity: 0.5;
+  line-height: 1;
+}
+.btn-row {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+/* ─────────────────────────────────────────────
+   MODAL
+───────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(6px) brightness(0.5);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+
+.modal-scroll {
+  width: 100%; max-width: 460px;
+  animation: modalSlide 0.4s cubic-bezier(0.22,1,0.36,1) both;
+  max-height: 90vh; overflow-y: auto;
+}
+@keyframes modalSlide {
+  from { opacity: 0; transform: translateY(40px) rotate(-1deg); }
+  to   { opacity: 1; transform: translateY(0) rotate(0); }
+}
+
+/* Warning banner */
+.warning-banner {
+  background: linear-gradient(180deg, #8a1a08, #620e04);
+  border: 1px solid #420804;
+  border-bottom: 3px solid #2a0402;
+  padding: 10px 20px;
+  text-align: center;
+  font-family: 'IM Fell English', serif;
+  font-size: clamp(13px, 3vw, 16px);
+  color: #f0c8c0;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+/* ─────────────────────────────────────────────
+   COUNTDOWN  (SoT urgent)
+───────────────────────────────────────────── */
+.countdown-wrap {
+  display: none;
+  flex-direction: column; align-items: center;
+  padding: 16px 0 8px;
+}
+.countdown-wrap.show { display: flex; }
+.countdown-ring {
+  width: 88px; height: 88px; position: relative;
+}
+.countdown-ring svg { transform: rotate(-90deg); }
+.ring-track { fill: none; stroke: rgba(122,26,10,0.2); stroke-width: 6; }
+.ring-prog  {
+  fill: none; stroke: var(--red); stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+.countdown-num {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'IM Fell English', serif; font-size: 26px; font-weight: bold;
+  color: var(--red);
+}
+.countdown-num.urgent { animation: urgPulse 0.5s ease-in-out infinite alternate; color: #cc0000; }
+@keyframes urgPulse {
+  from { transform: scale(1); }
+  to   { transform: scale(1.2); }
+}
+.countdown-sub {
+  font-family: 'IM Fell English', serif;
+  font-size: 10px; letter-spacing: 3px;
+  color: var(--ink3); margin-top: 4px; text-transform: uppercase;
+}
+
+/* PIN field */
+.pin-section {
+  padding: 16px 0 0;
+  border-top: 1px solid rgba(160,120,60,0.4);
+  margin-top: 4px;
+}
+.pin-label {
+  font-family: 'IM Fell English', serif;
+  font-size: 10px; letter-spacing: 3px;
+  color: var(--ink2); text-transform: uppercase;
+  display: block; margin-bottom: 8px;
+}
+.pin-row { display: flex; gap: 10px; }
+.pin-input {
+  flex: 1;
+  padding: 10px;
+  font-family: 'IM Fell English', serif;
+  font-size: 22px; text-align: center; letter-spacing: 10px;
+  background: rgba(255,255,255,0.45);
+  border: 1px solid var(--p3);
+  border-bottom: 2px solid var(--p4);
+  border-radius: 1px; color: var(--ink);
+  outline: none; transition: all 0.3s;
+}
+.pin-input:focus { border-color: var(--gold2); box-shadow: 0 0 0 2px rgba(200,136,42,0.25); }
+.pin-input.shake { animation: shake 0.4s ease; border-color: var(--red); }
+.pin-error {
+  display: none;
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: 13px; color: var(--red);
+  margin-top: 8px; border-left: 3px solid var(--red);
+  padding-left: 8px;
+}
+.easy-clue-reveal {
+  display: none; margin-top: 14px;
+  animation: clueAppear 0.6s ease both;
+}
+
+/* ─────────────────────────────────────────────
+   COMPLETION
+───────────────────────────────────────────── */
+.treasure-icon {
+  display: block; text-align: center;
+  font-size: 72px; margin-bottom: 12px;
+  animation: treasurePop 1.2s ease-in-out infinite alternate;
+}
+@keyframes treasurePop {
+  from { transform: translateY(0) rotate(-4deg); }
+  to   { transform: translateY(-10px) rotate(4deg); }
+}
+.completion-title {
+  font-family: 'IM Fell English', serif;
+  font-size: clamp(18px, 4vw, 26px);
+  color: var(--ink); text-align: center;
+  line-height: 1.4; margin-bottom: 10px;
+}
+.completion-body {
+  font-family: 'Sarabun', sans-serif;
+  font-size: clamp(13px, 3vw, 15px);
+  color: var(--ink2); line-height: 1.85;
+  font-weight: 300;
+}
+.completion-body strong {
+  font-family: 'IM Fell English', serif;
+  color: var(--ink);
+}
+
+/* ─────────────────────────────────────────────
+   SKETCH ILLUSTRATION  (SoT logbook style)
+───────────────────────────────────────────── */
+.sketch-wrap {
+  margin: 14px 0 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.sketch-frame {
+  width: 100%;
+  max-width: 320px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(160,120,60,0.4);
+  border-radius: 2px;
+  padding: 10px;
+  position: relative;
+  overflow: hidden;
+}
+/* aged paper tint over sketch */
+.sketch-frame::after {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 80% at 50% 50%, transparent 40%, rgba(180,140,60,0.12) 100%);
+  pointer-events: none;
+}
+.sketch-frame svg {
+  width: 100%; height: auto;
+  display: block;
+  /* pencil/ink look: sepia + slight blur */
+  filter: sepia(0.55) brightness(0.88) contrast(1.1);
+  opacity: 0.82;
+}
+.sketch-caption {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 11px;
+  color: var(--ink3);
+  letter-spacing: 1px;
+  opacity: 0.75;
+  text-align: center;
+}
+
+/* hint task illustration (smaller, greyscale-ish) */
+.hint-sketch {
+  margin: 10px auto 6px;
+  max-width: 280px;
+  width: 100%;
+  background: rgba(255,255,255,0.12);
+  border: 1px dashed rgba(160,120,60,0.35);
+  border-radius: 2px;
+  padding: 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.hint-sketch svg {
+  width: 100%; max-width: 240px; height: auto;
+  filter: sepia(0.4) brightness(0.82) contrast(1.15);
+  opacity: 0.75;
+}
+.hint-sketch-label {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 10px;
+  color: var(--ink3);
+  opacity: 0.6;
+}
+
+/* ─────────────────────────────────────────────
+   CONFETTI PARTICLES
+───────────────────────────────────────────── */
+.particle {
+  position: fixed; border-radius: 50%;
+  animation: pFall linear forwards;
+  pointer-events: none; z-index: 600;
+}
+@keyframes pFall {
+  from { opacity: 1; transform: translateY(-20px) rotate(0deg); }
+  to   { opacity: 0; transform: translateY(100vh) rotate(540deg); }
+}
+
+/* ─────────────────────────────────────────────
+   UTILS
+───────────────────────────────────────────── */
+.hidden { display: none !important; }
+.mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 12px; }
+.center { text-align: center; }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #1a0e04; }
+::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+
+@media (max-width: 480px) {
+  .scroll-body { padding: 18px 16px 20px; }
+  .answer-row { flex-direction: column; }
+  .btn-row { flex-direction: column; }
+  .pin-row { flex-direction: column; }
+  .doc-footer { flex-direction: column; gap: 4px; }
+  .candle-left  { left: 2vw; }
+  .candle-right { right: 2vw; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── ATMOSPHERE ── -->
+<div class="table-bg"></div>
+
+<div class="candle candle-left">
+  <div class="candle-flame"></div>
+  <div class="candle-body"></div>
+</div>
+<div class="candle candle-right">
+  <div class="candle-flame"></div>
+  <div class="candle-body"></div>
+</div>
+
+<!-- ── COMPASS ── -->
+<div class="compass-wrap">
+  <div class="compass-outer" id="compassOuter">
+    <div class="compass-inner">
+      <span class="compass-dir n">N</span>
+      <span class="compass-dir s">S</span>
+      <span class="compass-dir e">E</span>
+      <span class="compass-dir w">W</span>
+      <div class="compass-needle idle" id="compassNeedle"></div>
+      <div class="compass-dot"></div>
+    </div>
+  </div>
+  <div class="compass-status" id="compassStatus">⏳</div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     GAME WRAPPER
+═════════════════════════════════════════════ -->
+<div class="game-wrap">
+
+  <!-- ── HEADER ── -->
+  <header class="sot-header">
+    <div class="sot-title-line">
+      <div class="deco-line"></div>
+      <h1 class="sot-title">🏴‍☠️ การล่าสมบัติโจรสลัด</h1>
+      <div class="deco-line"></div>
+    </div>
+    <p class="sot-subtitle">⚓ Sea of Thieves ⚓</p>
+  </header>
+
+  <!-- ── STAGE TRACKER ── -->
+  <div class="stage-track" id="stageTrack">
+    <div class="pip active" id="pip1">⚓</div>
+    <div class="pip-line" id="pline1"></div>
+    <div class="pip locked" id="pip2">🗺️</div>
+    <div class="pip-line" id="pline2"></div>
+    <div class="pip locked" id="pip3">⚔️</div>
+    <div class="pip-line" id="pline3"></div>
+    <div class="pip locked" id="pip4">💀</div>
+  </div>
+
+  <!-- ══════════════════
+       STAGE 1
+  ═══════════════════════ -->
+  <div id="stage1" class="scroll-card">
+    <div class="scroll-top"></div>
+    <div class="scroll-body">
+      <div class="doc-header">
+        <div class="doc-org">โดยคำสั่งของ&nbsp;&nbsp;กัปตันแห่งท้องทะเล</div>
+        <div class="doc-stage-name">ภารกิจแรกของกะลาสี</div>
+        <div class="doc-stage-sub">ด่านที่ ๑ — จุดเริ่มต้น</div>
+      </div>
+      <div class="sot-sep"><span>⚓</span></div>
+      <p class="doc-body">
+        กะลาสีหน้าใหม่! หนทางยังอีกยาวไกล จงก้าวเดินไปตามเข็มทิศชี้ทิศ 
+        <strong>เหนือ (N)</strong> 
+        ตามหาหีบเหล็กใบยักษ์ที่กักเก็บความหนาวเหน็บราวกับยอดเขาน้ำแข็ง 
+        ท้องของมันเต็มไปด้วยเสบียงของลูกเรือ จงค้นหาในความเย็นเยือกนั้น...
+      </p>
+      <div class="doc-footer">
+        <div class="official-order">By Official Order</div>
+        <div class="signature">Capt. Blackwave</div>
+      </div>
+      <div class="btn-row mt-3 center" style="justify-content:center">
+        <button class="sot-btn btn-gold" onclick="goToStage(2)">
+          🗺️ &nbsp;พบชิ้นส่วนแผนที่แล้ว! ไปต่อ
+        </button>
+      </div>
+    </div>
+    <div class="scroll-bottom"></div>
+  </div>
+
+  <!-- ══════════════════
+       STAGE 2
+  ═══════════════════════ -->
+  <div id="stage2" class="scroll-card hidden">
+    <div class="scroll-top"></div>
+    <div class="scroll-body">
+      <div class="doc-header">
+        <div class="doc-org">ทะเบียนสินค้า&nbsp;&nbsp;—&nbsp;&nbsp;ปริศนาของกัปตัน</div>
+        <div class="doc-stage-name">ปริศนาเหรียญทอง</div>
+        <div class="doc-stage-sub">ด่านที่ ๒ — ทิศตะวันออก</div>
+      </div>
+      <div class="sot-sep"><span>💰</span></div>
+      <div class="registry-box">
+        <span class="registry-label">Registry of Riddles</span>
+        <p class="puzzle-text">
+          กัปตันมีเหรียญทอง <strong>50 เหรียญ</strong> แบ่งให้ลูกเรือ <strong>5 คน</strong> คนละเท่าๆ กัน
+          แต่กัปตันเปลี่ยนใจ ยึดคืนมาจากทุกคนคนละ <strong>2 เหรียญ</strong>
+          ตอนนี้ลูกเรือแต่ละคนเหลือเหรียญกี่เหรียญ?
+        </p>
+      </div>
+      <div class="answer-row">
+        <input type="number" id="ans2" class="sot-input" placeholder="คำตอบ..." inputmode="numeric">
+        <button class="sot-btn btn-gold" onclick="checkAnswer(2)">⚔️&nbsp;ยืนยัน</button>
+      </div>
+      <div class="err-msg" id="err2">✗ คำตอบผิด! ลองคิดใหม่อีกครั้งกะลาสี</div>
+      <div class="clue-box" id="clue2" data-label="Clue Revealed">
+        <p class="doc-body">
+          เยี่ยมมาก! ทีนี้จงหันหน้าไปทางทิศ <strong>ตะวันออก (E)</strong>
+          ตามหาอสูรกายปากกลมที่ชอบกลืนกินน้ำ มันชอบหมุนวนราวกับพายุหมุนกลางทะเล
+          เพื่อชำระล้างคราบสกปรก ลองไปสำรวจที่นั่นสิ...
+        </p>
+      </div>
+      <div class="doc-footer">
+        <div class="official-order">By Official Order</div>
+        <div class="signature">Capt. Blackwave</div>
+      </div>
+      <div class="btn-row mt-3">
+        <button class="sot-btn btn-dark" onclick="openHint(2)">🔮&nbsp;ขอคำใบ้จากกัปตัน</button>
+        <button class="sot-btn btn-gold hidden" id="next2" onclick="goToStage(3)">🗺️&nbsp;ไปด่านต่อไป</button>
+      </div>
+    </div>
+    <div class="scroll-bottom"></div>
+  </div>
+
+  <!-- ══════════════════
+       STAGE 3
+  ═══════════════════════ -->
+  <div id="stage3" class="scroll-card hidden">
+    <div class="scroll-top"></div>
+    <div class="scroll-body">
+      <div class="doc-header">
+        <div class="doc-org">บันทึกการเดินเรือ&nbsp;&nbsp;—&nbsp;&nbsp;ปริศนาของกัปตัน</div>
+        <div class="doc-stage-name">ปริศนาการเดินเรือ</div>
+        <div class="doc-stage-sub">ด่านที่ ๓ — ทิศตะวันตก</div>
+      </div>
+      <div class="sot-sep"><span>⛵</span></div>
+      <div class="registry-box">
+        <span class="registry-label">Registry of Riddles</span>
+        <p class="puzzle-text">
+          เรือใบโจรสลัดใช้เวลา <strong>2 วัน</strong> ในการแล่นไปได้ระยะทาง <strong>10 ไมล์ทะเล</strong>
+          ถ้าเกาะหัวกะโหลกอยู่ห่างออกไป <strong>30 ไมล์ทะเล</strong>
+          เราต้องใช้เวลากี่วันถึงจะไปถึง?
+        </p>
+      </div>
+      <div class="answer-row">
+        <input type="number" id="ans3" class="sot-input" placeholder="คำตอบ..." inputmode="numeric">
+        <button class="sot-btn btn-gold" onclick="checkAnswer(3)">⚔️&nbsp;ยืนยัน</button>
+      </div>
+      <div class="err-msg" id="err3">✗ คำตอบผิด! ลองคิดใหม่อีกครั้งกะลาสี</div>
+      <div class="clue-box" id="clue3" data-label="Clue Revealed">
+        <p class="doc-body">
+          เดินหน้าต่อไปทางทิศ <strong>ตะวันตก (W)</strong>!
+          ไปยังดินแดนที่มีสายน้ำร่วงหล่นจากฟ้า สถานที่ที่ให้เจ้าได้ชำระล้างกาย
+          จงก้าวเข้าไปข้างใน แล้วหันหลังกลับไปมองที่แผ่นไม้ที่เพิ่งปิดลง...
+        </p>
+      </div>
+      <div class="doc-footer">
+        <div class="official-order">By Official Order</div>
+        <div class="signature">Capt. Blackwave</div>
+      </div>
+      <div class="btn-row mt-3">
+        <button class="sot-btn btn-dark" onclick="openHint(3)">🔮&nbsp;ขอคำใบ้จากกัปตัน</button>
+        <button class="sot-btn btn-gold hidden" id="next3" onclick="goToStage(4)">🗺️&nbsp;ไปด่านต่อไป</button>
+      </div>
+    </div>
+    <div class="scroll-bottom"></div>
+  </div>
+
+  <!-- ══════════════════
+       STAGE 4
+  ═══════════════════════ -->
+  <div id="stage4" class="scroll-card hidden">
+    <div class="scroll-top"></div>
+    <div class="scroll-body">
+      <div class="doc-header">
+        <div class="doc-org">คำสาปแห่งท้องทะเลลึก&nbsp;&nbsp;—&nbsp;&nbsp;ปริศนาขั้นสุดท้าย</div>
+        <div class="doc-stage-name">ปริศนาคราเคน</div>
+        <div class="doc-stage-sub">ด่านที่ ๔ — ทิศใต้&nbsp;&nbsp;—&nbsp;&nbsp;ด่านสุดท้าย!</div>
+      </div>
+      <div class="sot-sep"><span>🐙</span></div>
+      <div class="registry-box">
+        <span class="registry-label">Registry of Riddles</span>
+        <p class="puzzle-text">
+          ปลาหมึกยักษ์คราเคน (Kraken) <strong>1 ตัว</strong> มีหนวด <strong>8 เส้น</strong>
+          ถ้ากัปตันเจอคราเคนบุกพร้อมกัน <strong>3 ตัว</strong>
+          กัปตันต้องสู้กับหนวดทั้งหมดกี่เส้น?
+        </p>
+      </div>
+      <div class="answer-row">
+        <input type="number" id="ans4" class="sot-input" placeholder="คำตอบ..." inputmode="numeric">
+        <button class="sot-btn btn-gold" onclick="checkAnswer(4)">⚔️&nbsp;ยืนยัน</button>
+      </div>
+      <div class="err-msg" id="err4">✗ คำตอบผิด! ลองคิดใหม่อีกครั้งกะลาสี</div>
+      <div class="clue-box" id="clue4" data-label="Clue Revealed">
+        <p class="doc-body">
+          ใกล้ถึงจุดหมายแล้ว! มุ่งหน้าไปทางทิศ <strong>ใต้ (S)</strong>
+          สู่กระจกบานใหญ่สีดำมืดที่ส่องแสงหลากสีและส่งเสียงเจื้อยแจ้วได้ราวกับมีเวทมนตร์
+          จงแอบดูที่ <strong>ด้านหลังของมัน...</strong>
+        </p>
+      </div>
+      <div class="doc-footer">
+        <div class="official-order">By Official Order</div>
+        <div class="signature">Capt. Blackwave</div>
+      </div>
+      <div class="btn-row mt-3">
+        <button class="sot-btn btn-dark" onclick="openHint(4)">🔮&nbsp;ขอคำใบ้จากกัปตัน</button>
+        <button class="sot-btn btn-green hidden" id="next4" onclick="showCompletion()">🏆&nbsp;ค้นพบสมบัติ!</button>
+      </div>
+    </div>
+    <div class="scroll-bottom"></div>
+  </div>
+
+  <!-- ══════════════════
+       COMPLETION
+  ═══════════════════════ -->
+  <div id="completion" class="scroll-card hidden">
+    <div class="scroll-top"></div>
+    <div class="scroll-body">
+      <div class="doc-header">
+        <div class="doc-org">โดยคำสั่งของ&nbsp;&nbsp;กัปตันแห่งท้องทะเล</div>
+        <div class="doc-stage-name">ภารกิจสำเร็จแล้ว!</div>
+      </div>
+      <div class="sot-sep"><span>🏆</span></div>
+      <span class="treasure-icon">🏆</span>
+      <h2 class="completion-title">ยอดเยี่ยม กัปตันน้อย!</h2>
+      <p class="completion-body">
+        เจ้าได้พิสูจน์ให้เห็นแล้วว่าเป็นโจรสลัดที่แท้จริงแห่ง <strong>Sea of Thieves!</strong>
+        <br><br>
+        เจ้าได้ผ่านความยากลำบากทั้ง ๔ ด่าน แก้ปริศนาสำเร็จ และตามหาสมบัติที่ซ่อนอยู่จนพบในที่สุด!
+        <br><br>
+        🏴‍☠️ &nbsp;<strong>ขอแสดงความยินดี กัปตันแห่งท้องทะเล!</strong>&nbsp; 🏴‍☠️
+      </p>
+      <div class="sot-sep mt-3"><span>⚓</span></div>
+      <div class="center mt-2">
+        <button class="sot-btn btn-gold" onclick="restartGame()">⚓&nbsp;เล่นใหม่อีกครั้ง</button>
+      </div>
+    </div>
+    <div class="scroll-bottom"></div>
+  </div>
+
+</div><!-- /game-wrap -->
+
+
+<!-- ══════════════════════════════════════════
+     HINT MODAL
+═══════════════════════════════════════════ -->
+<div class="modal-overlay" id="hintModal">
+  <div class="modal-scroll">
+
+    <!-- Warning banner -->
+    <div class="warning-banner" id="modalBanner">⚠️ คำสาปแห่งท้องทะเล! ⚠️</div>
+
+    <!-- Scroll body -->
+    <div class="scroll-body" style="border-radius:0">
+
+      <!-- Stage-specific task text -->
+      <div id="hintContent2" class="hidden">
+        <!-- Sketch: jumping jack pirate figure -->
+        <div class="hint-sketch">
+          <svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" stroke="#2b1e0e" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Figure A: arms & legs spread (jump) -->
+            <circle cx="55" cy="22" r="10" stroke-width="2"/>
+            <!-- hat -->
+            <path d="M44 14 Q55 6 66 14" stroke-width="1.5"/>
+            <line x1="42" y1="14" x2="68" y2="14" stroke-width="1.5"/>
+            <!-- body -->
+            <line x1="55" y1="32" x2="55" y2="68" stroke-width="2.5"/>
+            <!-- arms spread up -->
+            <line x1="55" y1="42" x2="28" y2="28" stroke-width="2"/>
+            <line x1="55" y1="42" x2="82" y2="28" stroke-width="2"/>
+            <!-- legs spread -->
+            <line x1="55" y1="68" x2="30" y2="92" stroke-width="2"/>
+            <line x1="55" y1="68" x2="80" y2="92" stroke-width="2"/>
+            <!-- Figure B: standing (normal) -->
+            <circle cx="145" cy="22" r="10" stroke-width="2"/>
+            <path d="M134 14 Q145 6 156 14" stroke-width="1.5"/>
+            <line x1="132" y1="14" x2="158" y2="14" stroke-width="1.5"/>
+            <line x1="145" y1="32" x2="145" y2="68" stroke-width="2.5"/>
+            <!-- arms down -->
+            <line x1="145" y1="44" x2="128" y2="58" stroke-width="2"/>
+            <line x1="145" y1="44" x2="162" y2="58" stroke-width="2"/>
+            <!-- legs together -->
+            <line x1="145" y1="68" x2="138" y2="92" stroke-width="2"/>
+            <line x1="145" y1="68" x2="152" y2="92" stroke-width="2"/>
+            <!-- arrows between figures -->
+            <path d="M90 55 Q100 48 110 55" stroke-width="1.5" stroke-dasharray="3,2"/>
+            <path d="M107 52 L110 55 L107 58" stroke-width="1.5" fill="none"/>
+            <!-- x15 label -->
+            <text x="95" y="44" font-size="11" stroke="none" fill="#2b1e0e" font-family="serif" font-style="italic">×15</text>
+            <!-- ground line -->
+            <line x1="18" y1="98" x2="88" y2="98" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+            <line x1="108" y1="98" x2="178" y2="98" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+            <!-- sweat drops on figure A -->
+            <path d="M70 18 Q72 15 74 18 Q74 21 72 21 Q70 21 70 18" stroke-width="1" opacity="0.6"/>
+            <path d="M73 25 Q75 23 77 25 Q77 27 75 27 Q73 27 73 25" stroke-width="1" opacity="0.4"/>
+          </svg>
+          <div class="hint-sketch-label">กระโดดตบ ×15 ครั้ง</div>
+        </div>
+        <p class="doc-body">
+          จงกระโดดตบ <strong>15 ครั้ง</strong> พร้อมกับทำหน้าตลกที่สุดเท่าที่จะทำได้
+          ถ้ากัปตันเห็นว่าผ่าน ถึงจะได้รหัสผ่านไป!
+        </p>
+      </div>
+      <div id="hintContent3" class="hidden">
+        <!-- Sketch: spinning pirate tornado -->
+        <div class="hint-sketch">
+          <svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" stroke="#2b1e0e" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Tornado swirl lines -->
+            <path d="M100 10 Q130 20 120 35 Q140 42 125 55 Q145 65 128 80" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.5"/>
+            <path d="M100 10 Q70 20 80 35 Q60 42 75 55 Q55 65 72 80" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.5"/>
+            <!-- Pirate spinning figure in center -->
+            <circle cx="100" cy="38" r="11" stroke-width="2"/>
+            <!-- pirate hat -->
+            <path d="M88 30 Q100 21 112 30" stroke-width="1.5"/>
+            <line x1="86" y1="30" x2="114" y2="30" stroke-width="1.5"/>
+            <!-- skull on hat -->
+            <circle cx="100" cy="26" r="3" stroke-width="1"/>
+            <!-- spinning body -->
+            <line x1="100" y1="49" x2="100" y2="80" stroke-width="2.5"/>
+            <!-- arms extended wide spinning -->
+            <line x1="100" y1="58" x2="72" y2="48" stroke-width="2"/>
+            <line x1="100" y1="58" x2="128" y2="48" stroke-width="2"/>
+            <!-- motion blur lines on arms -->
+            <line x1="75" y1="44" x2="68" y2="42" stroke-width="1" opacity="0.4"/>
+            <line x1="125" y1="44" x2="132" y2="42" stroke-width="1" opacity="0.4"/>
+            <!-- legs splayed in spin -->
+            <line x1="100" y1="80" x2="76" y2="100" stroke-width="2"/>
+            <line x1="100" y1="80" x2="124" y2="100" stroke-width="2"/>
+            <!-- rotation arrows -->
+            <path d="M82 62 Q76 55 80 48 Q84 41 90 42" stroke-width="1.5" marker-end="none"/>
+            <path d="M88 42 Q85 42 84 45" stroke-width="1.5"/>
+            <path d="M118 62 Q124 55 120 48 Q116 41 110 42" stroke-width="1.5"/>
+            <!-- x5 rota label -->
+            <text x="88" y="118" font-size="12" stroke="none" fill="#2b1e0e" font-family="serif" font-style="italic">×5 รอบ</text>
+            <!-- dizziness stars -->
+            <text x="54" y="36" font-size="14" stroke="none" fill="#2b1e0e" opacity="0.5">✦</text>
+            <text x="136" y="32" font-size="11" stroke="none" fill="#2b1e0e" opacity="0.4">✦</text>
+            <text x="60" y="90" font-size="9"  stroke="none" fill="#2b1e0e" opacity="0.35">✦</text>
+            <!-- ground -->
+            <line x1="60" y1="105" x2="140" y2="105" stroke-width="1" stroke-dasharray="4,3" opacity="0.45"/>
+          </svg>
+          <div class="hint-sketch-label">หมุน 5 รอบ แล้วเดินตรง 5 ก้าว</div>
+        </div>
+        <p class="doc-body">
+          จงกางแขนออกแล้วหมุนตัวเป็นพายุทอร์นาโด <strong>5 รอบ</strong>
+          จากนั้นพยายามเดินเป็นเส้นตรงให้ได้ <strong>5 ก้าว</strong>โดยไม่ล้ม
+          ถ้าทำได้ กัปตันจะปลดล็อคให้!
+        </p>
+      </div>
+      <div id="hintContent4" class="hidden">
+        <!-- Sketch: three colored objects -->
+        <div class="hint-sketch">
+          <svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg" stroke="#2b1e0e" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Red object: treasure chest / box -->
+            <rect x="18" y="55" width="46" height="36" rx="2" stroke-width="2" fill="rgba(180,40,20,0.15)"/>
+            <line x1="18" y1="71" x2="64" y2="71" stroke-width="1.5"/>
+            <rect x="34" y="66" width="14" height="10" rx="1" stroke-width="1.5" fill="rgba(180,40,20,0.1)"/>
+            <circle cx="41" cy="71" r="2.5" stroke-width="1.5"/>
+            <!-- lid top curve -->
+            <path d="M18 55 Q41 44 64 55" stroke-width="2" fill="rgba(180,40,20,0.08)"/>
+            <!-- RED label -->
+            <text x="29" y="104" font-size="9" stroke="none" fill="#7a1a0a" font-family="serif" font-weight="bold">สีแดง</text>
+            <!-- cross-hatch fill indicator -->
+            <line x1="22" y1="59" x2="60" y2="89" stroke-width="0.7" stroke-dasharray="3,4" opacity="0.3"/>
+            <line x1="22" y1="69" x2="54" y2="91" stroke-width="0.7" stroke-dasharray="3,4" opacity="0.3"/>
+
+            <!-- Blue object: barrel -->
+            <ellipse cx="110" cy="56" rx="22" ry="8" stroke-width="2" fill="rgba(20,60,140,0.12)"/>
+            <rect x="88" y="56" width="44" height="38" stroke-width="2" fill="rgba(20,60,140,0.10)"/>
+            <ellipse cx="110" cy="94" rx="22" ry="8" stroke-width="2" fill="rgba(20,60,140,0.12)"/>
+            <!-- barrel bands -->
+            <line x1="88" y1="68" x2="132" y2="68" stroke-width="2"/>
+            <line x1="88" y1="82" x2="132" y2="82" stroke-width="2"/>
+            <!-- wood grain -->
+            <line x1="98" y1="56" x2="98" y2="94" stroke-width="1" opacity="0.3"/>
+            <line x1="110" y1="56" x2="110" y2="94" stroke-width="1" opacity="0.3"/>
+            <line x1="122" y1="56" x2="122" y2="94" stroke-width="1" opacity="0.3"/>
+            <text x="98" y="112" font-size="9" stroke="none" fill="#1a3a80" font-family="serif" font-weight="bold">สีน้ำเงิน</text>
+
+            <!-- Yellow object: lantern / candle -->
+            <rect x="162" y="44" width="36" height="50" rx="3" stroke-width="2" fill="rgba(200,160,20,0.15)"/>
+            <!-- lantern top -->
+            <line x1="162" y1="52" x2="198" y2="52" stroke-width="1.5"/>
+            <line x1="170" y1="44" x2="170" y2="38" stroke-width="1.5"/>
+            <line x1="190" y1="44" x2="190" y2="38" stroke-width="1.5"/>
+            <line x1="168" y1="38" x2="192" y2="38" stroke-width="1.5"/>
+            <!-- flame glow -->
+            <ellipse cx="180" cy="62" rx="8" ry="10" stroke-width="0" fill="rgba(255,200,50,0.25)"/>
+            <path d="M176 68 Q180 54 184 68 Q184 74 180 74 Q176 74 176 68" stroke-width="1.5" fill="rgba(255,180,20,0.3)"/>
+            <!-- glass panel lines -->
+            <line x1="173" y1="52" x2="173" y2="94" stroke-width="1" opacity="0.25"/>
+            <line x1="187" y1="52" x2="187" y2="94" stroke-width="1" opacity="0.25"/>
+            <!-- bottom -->
+            <line x1="162" y1="88" x2="198" y2="88" stroke-width="1.5"/>
+            <text x="165" y="112" font-size="9" stroke="none" fill="#806010" font-family="serif" font-weight="bold">สีเหลือง</text>
+
+            <!-- arrow pointers from top -->
+            <path d="M41 46 L41 54" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.5"/>
+            <path d="M110 44 L110 50" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.5"/>
+            <path d="M180 32 L180 42" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.5"/>
+          </svg>
+          <div class="hint-sketch-label">หาของสีแดง สีน้ำเงิน สีเหลือง — ภายใน 20 วินาที!</div>
+        </div>
+        <p class="doc-body">
+          วิ่งไปหาของที่มี <strong>สีแดง</strong>&nbsp; <strong>สีน้ำเงิน</strong>&nbsp;และ&nbsp;<strong>สีเหลือง</strong>
+          มาวางเรียงกันให้ครบภายในเวลา <strong>20 วินาที!</strong>
+        </p>
+        <!-- countdown -->
+        <div class="countdown-wrap show" id="cntWrap">
+          <div class="countdown-ring">
+            <svg width="88" height="88" viewBox="0 0 88 88">
+              <circle class="ring-track" cx="44" cy="44" r="38"/>
+              <circle class="ring-prog" id="ringProg" cx="44" cy="44" r="38"
+                stroke-dasharray="238.76" stroke-dashoffset="0"/>
+            </svg>
+            <div class="countdown-num" id="cntNum">20</div>
+          </div>
+          <div class="countdown-sub">วินาที</div>
+        </div>
+      </div>
+
+      <div class="sot-sep mt-2"><span>🔐</span></div>
+
+      <!-- PIN section -->
+      <div class="pin-section">
+        <span class="pin-label">รหัสลับจากกัปตัน</span>
+        <div class="pin-row">
+          <input type="password" id="pinInput" class="pin-input"
+                 placeholder="••••" maxlength="4" inputmode="numeric">
+          <button class="sot-btn btn-gold" onclick="submitPin()">✅&nbsp;ยืนยัน</button>
+        </div>
+        <div class="pin-error" id="pinError">✗ รหัสผิด! กัปตันยังไม่เชื่อใจเจ้า!</div>
+      </div>
+
+      <!-- Easy clue reveal -->
+      <div class="easy-clue-reveal" id="easyClueReveal">
+        <div class="sot-sep"><span>💡</span></div>
+        <div class="clue-box" style="display:block" data-label="Captain's Secret">
+          <!-- sketch injected by JS per stage -->
+          <div id="easySketchWrap" class="sketch-wrap"></div>
+          <p class="doc-body" id="easyClueText"></p>
+        </div>
+      </div>
+
+      <div class="sot-sep mt-2"><span>—</span></div>
+      <div class="center">
+        <button class="sot-btn btn-red" onclick="closeModal()">🏴‍☠️&nbsp;ปิด</button>
+      </div>
+    </div><!-- /scroll-body -->
+
+  </div><!-- /modal-scroll -->
+</div><!-- /modal-overlay -->
+
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════ -->
+<script>
+/* ═══════════════════════════════════════════
+   REAL COMPASS  (DeviceOrientationEvent)
+   ─ Works on iOS 13+ (requires permission)
+   ─ Works on Android Chrome automatically
+   ─ Falls back to idle sway if unavailable
+═══════════════════════════════════════════ */
+(function initCompass() {
+  const outer   = document.getElementById('compassOuter');
+  const needle  = document.getElementById('compassNeedle');
+  const status  = document.getElementById('compassStatus');
+  let isLive    = false;
+  let lastAngle = 0;
+
+  /* ── smooth angle interpolation ── */
+  function setRingAngle(deg) {
+    // rotate the OUTER ring so N label always points to real North
+    // i.e. ring rotates opposite to heading
+    outer.style.transform = `rotate(${-deg}deg)`;
+  }
+
+  /* ── handle orientation event ── */
+  function handleOrientation(e) {
+    // webkitCompassHeading = degrees clockwise from magnetic North (iOS)
+    // alpha = degrees the device has rotated around Z-axis (Android, 0=North)
+    let heading = null;
+
+    if (e.webkitCompassHeading != null && !isNaN(e.webkitCompassHeading)) {
+      heading = e.webkitCompassHeading; // iOS — already magnetic heading
+    } else if (e.alpha != null) {
+      // Android: alpha is CCW from North, convert to CW heading
+      heading = (360 - e.alpha) % 360;
+    }
+
+    if (heading == null) return;
+
+    // Only activate once we get a real reading
+    if (!isLive) {
+      isLive = true;
+      needle.classList.remove('idle');
+      needle.style.transform = 'translate(-50%, -100%) rotate(0deg)';
+      outer.classList.add('live');
+      status.textContent = '● LIVE';
+      status.className = 'compass-status live-ok';
+    }
+
+    // Smooth shortest-path rotation
+    let diff = heading - lastAngle;
+    if (diff >  180) diff -= 360;
+    if (diff < -180) diff += 360;
+    lastAngle += diff;
+
+    setRingAngle(lastAngle);
+  }
+
+  /* ── iOS 13+ requires permission request ── */
+  function requestIOSPermission() {
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission()
+        .then(state => {
+          if (state === 'granted') {
+            window.addEventListener('deviceorientation', handleOrientation, true);
+            status.textContent = '● LIVE';
+          } else {
+            fallback();
+          }
+        })
+        .catch(fallback);
+    }
+  }
+
+  /* ── fallback: idle sway ── */
+  function fallback() {
+    status.textContent = 'ไม่มีเซนเซอร์';
+    status.className = 'compass-status live-err';
+    needle.classList.add('idle');
+  }
+
+  /* ── tap compass to trigger iOS permission ── */
+  outer.style.cursor = 'pointer';
+  outer.addEventListener('click', function() {
+    if (isLive) return; // already live
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      // iOS 13+ — must be triggered by user gesture
+      requestIOSPermission();
+    }
+  });
+
+  /* ── Auto-start for non-iOS (Android, desktop) ── */
+  if (typeof DeviceOrientationEvent !== 'undefined') {
+    if (typeof DeviceOrientationEvent.requestPermission !== 'function') {
+      // Android / non-iOS: attach directly
+      window.addEventListener('deviceorientation', handleOrientation, true);
+      // show tap hint until first reading
+      status.textContent = 'รอสัญญาณ...';
+      setTimeout(() => {
+        if (!isLive) fallback();
+      }, 3000);
+    } else {
+      // iOS: show tap prompt
+      status.textContent = '🧭 แตะเพื่อเปิด';
+      status.className = 'compass-status';
+    }
+  } else {
+    fallback();
+  }
+})();
+
+/* ─── EASY CLUE SKETCHES (injected per stage) ─── */
+const SKETCHES = {
+  /* Stage 2: refrigerator sketch */
+  2: `<div class="sketch-frame">
+    <svg viewBox="0 0 180 200" xmlns="http://www.w3.org/2000/svg" stroke="#2b1e0e" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <!-- fridge body -->
+      <rect x="30" y="10" width="120" height="180" rx="6" stroke-width="2.5" fill="rgba(200,185,155,0.15)"/>
+      <!-- freezer compartment top -->
+      <line x1="30" y1="75" x2="150" y2="75" stroke-width="2"/>
+      <!-- freezer door handle -->
+      <rect x="76" y="28" width="28" height="8" rx="4" stroke-width="1.5" fill="rgba(160,120,60,0.12)"/>
+      <!-- fridge door handle -->
+      <rect x="76" y="108" width="28" height="8" rx="4" stroke-width="1.5" fill="rgba(160,120,60,0.12)"/>
+      <!-- fridge hinge marks -->
+      <circle cx="38" cy="30" r="3" stroke-width="1.5"/>
+      <circle cx="38" cy="60" r="3" stroke-width="1.5"/>
+      <circle cx="38" cy="100" r="3" stroke-width="1.5"/>
+      <circle cx="38" cy="170" r="3" stroke-width="1.5"/>
+      <!-- cold lines inside freezer -->
+      <line x1="48" y1="40" x2="132" y2="40" stroke-width="1" stroke-dasharray="5,4" opacity="0.4"/>
+      <line x1="48" y1="50" x2="132" y2="50" stroke-width="1" stroke-dasharray="5,4" opacity="0.4"/>
+      <line x1="48" y1="60" x2="132" y2="60" stroke-width="1" stroke-dasharray="5,4" opacity="0.4"/>
+      <!-- ice crystals in freezer -->
+      <path d="M62 45 L62 38 M59 43 L65 40 M59 40 L65 43" stroke-width="1.5" opacity="0.55"/>
+      <path d="M90 48 L90 41 M87 46 L93 43 M87 43 L93 46" stroke-width="1.5" opacity="0.55"/>
+      <path d="M118 44 L118 37 M115 42 L121 39 M115 39 L121 42" stroke-width="1.5" opacity="0.55"/>
+      <!-- fridge shelf lines -->
+      <line x1="40" y1="115" x2="140" y2="115" stroke-width="1.5" opacity="0.5"/>
+      <line x1="40" y1="148" x2="140" y2="148" stroke-width="1.5" opacity="0.5"/>
+      <!-- food items sketch inside fridge -->
+      <!-- bottle -->
+      <rect x="50" y="120" width="14" height="24" rx="3" stroke-width="1.5" fill="rgba(160,120,60,0.1)"/>
+      <rect x="54" y="116" width="6" height="6" rx="1" stroke-width="1.2"/>
+      <!-- round fruit -->
+      <circle cx="90" cy="130" r="9" stroke-width="1.5" fill="rgba(160,120,60,0.08)"/>
+      <path d="M88 121 Q90 117 92 121" stroke-width="1"/>
+      <!-- box -->
+      <rect x="108" y="118" width="22" height="18" rx="1" stroke-width="1.5" fill="rgba(160,120,60,0.1)"/>
+      <line x1="119" y1="118" x2="119" y2="136" stroke-width="1" opacity="0.4"/>
+      <!-- cold wave lines outside fridge -->
+      <path d="M158 80 Q165 85 158 90 Q165 95 158 100" stroke-width="1.2" stroke-dasharray="3,2" opacity="0.45"/>
+      <path d="M164 82 Q172 87 164 92 Q172 97 164 102" stroke-width="1" stroke-dasharray="3,2" opacity="0.3"/>
+      <!-- ground shadow -->
+      <ellipse cx="90" cy="193" rx="50" ry="5" stroke-width="0" fill="rgba(43,30,14,0.12)"/>
+    </svg>
+  </div>
+  <div class="sketch-caption">ตู้เย็น — ใช้ทิศตะวันออก (E)</div>`,
+
+  /* Stage 3: washing machine sketch */
+  3: `<div class="sketch-frame">
+    <svg viewBox="0 0 180 200" xmlns="http://www.w3.org/2000/svg" stroke="#2b1e0e" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <!-- machine body -->
+      <rect x="20" y="20" width="140" height="160" rx="6" stroke-width="2.5" fill="rgba(200,185,155,0.12)"/>
+      <!-- top panel -->
+      <rect x="20" y="20" width="140" height="30" rx="6" stroke-width="0" fill="rgba(160,120,60,0.08)"/>
+      <line x1="20" y1="50" x2="160" y2="50" stroke-width="1.5"/>
+      <!-- knobs & buttons on top panel -->
+      <circle cx="50"  cy="35" r="7" stroke-width="1.5"/>
+      <circle cx="50"  cy="35" r="3" stroke-width="1" fill="rgba(160,120,60,0.2)"/>
+      <circle cx="78"  cy="35" r="5" stroke-width="1.5"/>
+      <circle cx="100" cy="35" r="5" stroke-width="1.5"/>
+      <rect x="118" y="29" width="30" height="12" rx="2" stroke-width="1.5"/>
+      <!-- big drum circle -->
+      <circle cx="90" cy="120" r="55" stroke-width="2.5" fill="rgba(200,185,155,0.1)"/>
+      <circle cx="90" cy="120" r="48" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.4"/>
+      <circle cx="90" cy="120" r="38" stroke-width="2" fill="rgba(160,120,60,0.06)"/>
+      <!-- drum holes -->
+      <circle cx="74" cy="107" r="4" stroke-width="1.2" opacity="0.5"/>
+      <circle cx="90" cy="103" r="4" stroke-width="1.2" opacity="0.5"/>
+      <circle cx="106" cy="107" r="4" stroke-width="1.2" opacity="0.5"/>
+      <circle cx="112" cy="122" r="4" stroke-width="1.2" opacity="0.5"/>
+      <circle cx="106" cy="135" r="4" stroke-width="1.2" opacity="0.5"/>
+      <circle cx="90" cy="139" r="4" stroke-width="1.2" opacity="0.5"/>
+      <circle cx="74" cy="135" r="4" stroke-width="1.2" opacity="0.5"/>
+      <circle cx="68" cy="122" r="4" stroke-width="1.2" opacity="0.5"/>
+      <!-- spin arrow inside drum -->
+      <path d="M72 110 Q90 96 108 110 Q122 124 108 140" stroke-width="1.8" stroke-dasharray="5,3"/>
+      <path d="M106 143 L108 140 L111 142" stroke-width="1.5"/>
+      <!-- water ripple lines -->
+      <path d="M22 165 Q55 158 90 165 Q125 172 158 165" stroke-width="1.2" opacity="0.4"/>
+      <path d="M22 173 Q55 166 90 173 Q125 180 158 173" stroke-width="1" opacity="0.3"/>
+      <!-- door hinge -->
+      <circle cx="30" cy="90" r="3" stroke-width="1.5"/>
+      <circle cx="30" cy="120" r="3" stroke-width="1.5"/>
+      <!-- ground shadow -->
+      <ellipse cx="90" cy="183" rx="56" ry="5" stroke-width="0" fill="rgba(43,30,14,0.1)"/>
+      <!-- clothes peek -->
+      <path d="M68 138 Q78 142 90 139 Q100 136 108 140" stroke-width="1.5" opacity="0.35"/>
+    </svg>
+  </div>
+  <div class="sketch-caption">เครื่องซักผ้า — ใช้ทิศตะวันตก (W)</div>`,
+
+  /* Stage 4: television sketch */
+  4: `<div class="sketch-frame">
+    <svg viewBox="0 0 220 180" xmlns="http://www.w3.org/2000/svg" stroke="#2b1e0e" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <!-- TV body / bezel -->
+      <rect x="15" y="15" width="190" height="130" rx="8" stroke-width="2.5" fill="rgba(40,30,15,0.18)"/>
+      <!-- screen area (inner) -->
+      <rect x="24" y="22" width="172" height="116" rx="4" stroke-width="2" fill="rgba(20,15,8,0.25)"/>
+      <!-- screen glow scanlines -->
+      <line x1="26" y1="30" x2="194" y2="30" stroke-width="0.8" opacity="0.25"/>
+      <line x1="26" y1="38" x2="194" y2="38" stroke-width="0.8" opacity="0.25"/>
+      <line x1="26" y1="46" x2="194" y2="46" stroke-width="0.8" opacity="0.25"/>
+      <line x1="26" y1="54" x2="194" y2="54" stroke-width="0.8" opacity="0.25"/>
+      <line x1="26" y1="62" x2="194" y2="62" stroke-width="0.8" opacity="0.25"/>
+      <line x1="26" y1="70" x2="194" y2="70" stroke-width="0.8" opacity="0.25"/>
+      <line x1="26" y1="78" x2="194" y2="78" stroke-width="0.8" opacity="0.25"/>
+      <line x1="26" y1="86" x2="194" y2="86" stroke-width="0.8" opacity="0.25"/>
+      <line x1="26" y1="94" x2="194" y2="94" stroke-width="0.8" opacity="0.25"/>
+      <line x1="26" y1="102" x2="194" y2="102" stroke-width="0.8" opacity="0.25"/>
+      <line x1="26" y1="110" x2="194" y2="110" stroke-width="0.8" opacity="0.25"/>
+      <line x1="26" y1="118" x2="194" y2="118" stroke-width="0.8" opacity="0.25"/>
+      <!-- rough screen content doodle (landscape) -->
+      <path d="M30 125 Q60 90 90 105 Q110 115 130 88 Q150 68 190 80" stroke-width="2" opacity="0.3"/>
+      <!-- mountains sketch on screen -->
+      <path d="M40 125 L70 75 L100 125" stroke-width="1.8" opacity="0.35"/>
+      <path d="M85 125 L110 88 L135 125" stroke-width="1.8" opacity="0.35"/>
+      <path d="M120 125 L155 70 L190 125" stroke-width="1.8" opacity="0.35"/>
+      <!-- sun on screen -->
+      <circle cx="165" cy="38" r="12" stroke-width="1.5" opacity="0.3"/>
+      <line x1="165" y1="22" x2="165" y2="26" stroke-width="1.2" opacity="0.3"/>
+      <line x1="179" y1="38" x2="183" y2="38" stroke-width="1.2" opacity="0.3"/>
+      <line x1="165" y1="52" x2="165" y2="56" stroke-width="1.2" opacity="0.3"/>
+      <line x1="151" y1="38" x2="147" y2="38" stroke-width="1.2" opacity="0.3"/>
+      <!-- TV stand / base -->
+      <path d="M80 145 L75 160 L145 160 L140 145" stroke-width="2"/>
+      <line x1="68" y1="160" x2="152" y2="160" stroke-width="2.5"/>
+      <!-- cables behind TV (hint!) -->
+      <path d="M30 155 Q20 162 18 172 Q16 180 24 182" stroke-width="1.8" stroke-dasharray="4,3" opacity="0.55"/>
+      <path d="M35 157 Q24 166 22 176 Q20 184 28 185" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.4"/>
+      <!-- arrow pointing BEHIND -->
+      <path d="M155 165 Q168 168 174 162" stroke-width="1.8"/>
+      <path d="M172 159 L174 162 L171 165" stroke-width="1.5"/>
+      <text x="154" y="178" font-size="9" stroke="none" fill="#2b1e0e" font-family="serif" font-style="italic" opacity="0.7">ด้านหลัง!</text>
+      <!-- buttons on bezel -->
+      <circle cx="185" cy="80" r="3.5" stroke-width="1.5"/>
+      <circle cx="185" cy="92" r="3.5" stroke-width="1.5"/>
+      <circle cx="185" cy="104" r="3.5" stroke-width="1.5"/>
+      <!-- IR receiver dot -->
+      <circle cx="185" cy="116" r="2.5" stroke-width="1.2" fill="rgba(40,30,15,0.3)"/>
+    </svg>
+  </div>
+  <div class="sketch-caption">โทรทัศน์ — ดูที่ด้านหลังจอ ใช้ทิศใต้ (S)</div>`
+};
+
+/* ─── STATE ─── */
+let currentStage     = 1;
+let currentHintStage = 0;
+let cntInterval      = null;
+let cntValue         = 20;
+const CIRC           = 238.76;
+
+/* ─── GAME DATA ─── */
+const DATA = {
+  2: {
+    answer:   '8',
+    pin:      '1111',
+    easyClue: '💡 คำใบ้ลับ: เดินไปที่ห้องครัวเลย! ไปหาตู้สี่เหลี่ยมใหญ่ๆ ที่ข้างในมันเย็นเจี๊ยบ มีน้ำเย็นกับของกินแช่เต็มไปหมด!'
+  },
+  3: {
+    answer:   '6',
+    pin:      '2222',
+    easyClue: '💡 คำใบ้ลับ: ไปหาเครื่องกล่องๆ ที่เอาไว้ซักเสื้อผ้าให้หอมๆ เครื่องที่มันหมุนติ้วๆ มีเสียงน้ำซู่ๆ นั่นแหละ!'
+  },
+  4: {
+    answer:   '24',
+    pin:      '4444',
+    easyClue: '💡 คำใบ้ลับ: ไปที่ห้องนั่งเล่นเลย! ตรงไปหาหน้าจอสี่เหลี่ยมบานใหญ่ๆ ที่เราเอาไว้ดูการ์ตูนกับดูหนัง แล้วมุดไปดูข้างหลังจอมันเลย!'
+  }
+};
+
+/* ─── STAGE NAVIGATION ─── */
+function goToStage(stage) {
+  // hide current
+  document.getElementById('stage' + currentStage).classList.add('hidden');
+
+  // mark done in tracker
+  const curPip  = document.getElementById('pip'   + currentStage);
+  const curLine = document.getElementById('pline' + currentStage);
+  if (curPip)  { curPip.classList.remove('active'); curPip.classList.add('done'); curPip.textContent = '✓'; }
+  if (curLine) curLine.classList.add('done');
+
+  currentStage = stage;
+
+  // show new stage & re-trigger animation
+  const el = document.getElementById('stage' + stage);
+  el.classList.remove('hidden');
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+
+  // update tracker
+  const newPip = document.getElementById('pip' + stage);
+  if (newPip) { newPip.classList.remove('locked'); newPip.classList.add('active'); }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ─── ANSWER CHECKING ─── */
+function checkAnswer(stage) {
+  const inp  = document.getElementById('ans'  + stage);
+  const err  = document.getElementById('err'  + stage);
+  const clue = document.getElementById('clue' + stage);
+  const next = document.getElementById('next' + stage);
+
+  if (inp.value.trim() === DATA[stage].answer) {
+    err.style.display = 'none';
+    clue.style.display = 'block';
+    inp.disabled = true;
+    if (next) next.classList.remove('hidden');
+  } else {
+    err.style.display = 'block';
+    inp.classList.add('shake');
+    setTimeout(() => inp.classList.remove('shake'), 500);
+    inp.value = ''; inp.focus();
+  }
+}
+
+// Enter key on answer inputs
+document.querySelectorAll('.sot-input').forEach(inp => {
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') checkAnswer(+inp.id.replace('ans', ''));
+  });
+});
+
+/* ─── HINT MODAL ─── */
+const bannerTexts = {
+  2: '⚠️ คำสาปแห่งท้องทะเล! ⚠️',
+  3: '⚠️ เผชิญหน้าพายุหมุน! ⚠️',
+  4: '⚠️ ตาไวเหมือนนกแก้ว! ⚠️'
+};
+
+function openHint(stage) {
+  currentHintStage = stage;
+
+  // banner
+  document.getElementById('modalBanner').textContent = bannerTexts[stage];
+
+  // show correct content
+  [2,3,4].forEach(s => document.getElementById('hintContent' + s).classList.add('hidden'));
+  document.getElementById('hintContent' + stage).classList.remove('hidden');
+
+  // stage4 countdown
+  if (stage === 4) startCountdown();
+
+  document.getElementById('hintModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('hintModal').classList.remove('open');
+  stopCountdown();
+  currentHintStage = 0;
+  // reset sketch & clue for next open
+  document.getElementById('easySketchWrap').innerHTML = '';
+  document.getElementById('easyClueReveal').style.display = 'none';
+  document.getElementById('pinInput').value = '';
+  document.getElementById('pinError').style.display = 'none';
+}
+
+document.getElementById('hintModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+document.getElementById('pinInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitPin();
+});
+
+/* ─── PIN ─── */
+function submitPin() {
+  const pin = document.getElementById('pinInput').value.trim();
+  const err = document.getElementById('pinError');
+
+  if (pin === DATA[currentHintStage].pin) {
+    err.style.display = 'none';
+    stopCountdown();
+
+    // inject sketch for this stage
+    const sketchWrap = document.getElementById('easySketchWrap');
+    sketchWrap.innerHTML = SKETCHES[currentHintStage] || '';
+
+    // reveal easy clue
+    document.getElementById('easyClueText').textContent = DATA[currentHintStage].easyClue;
+    document.getElementById('easyClueReveal').style.display = 'block';
+
+    // enable next button on stage
+    const nb = document.getElementById('next' + currentHintStage);
+    if (nb) nb.classList.remove('hidden');
+  } else {
+    err.style.display = 'block';
+    const pi = document.getElementById('pinInput');
+    pi.classList.add('shake');
+    setTimeout(() => pi.classList.remove('shake'), 500);
+    pi.value = ''; pi.focus();
+  }
+}
+
+/* ─── COUNTDOWN ─── */
+function startCountdown() {
+  stopCountdown();
+  cntValue = 20;
+  updateCnt(20);
+  cntInterval = setInterval(() => {
+    cntValue--;
+    updateCnt(cntValue);
+    if (cntValue <= 0) stopCountdown();
+  }, 1000);
+}
+function stopCountdown() {
+  if (cntInterval) { clearInterval(cntInterval); cntInterval = null; }
+}
+function updateCnt(v) {
+  const val = Math.max(0, v);
+  const num = document.getElementById('cntNum');
+  const ring = document.getElementById('ringProg');
+  if (!num || !ring) return;
+  num.textContent = val;
+  ring.style.strokeDashoffset = CIRC * (1 - val / 20);
+  if (val <= 5) {
+    num.classList.add('urgent');
+    ring.style.stroke = '#cc0000';
+  } else {
+    num.classList.remove('urgent');
+    ring.style.stroke = 'var(--red)';
+  }
+}
+
+/* ─── COMPLETION ─── */
+function showCompletion() {
+  document.getElementById('stage4').classList.add('hidden');
+  const p4 = document.getElementById('pip4');
+  if (p4) { p4.classList.remove('active'); p4.classList.add('done'); p4.textContent = '✓'; }
+
+  const el = document.getElementById('completion');
+  el.classList.remove('hidden');
+  el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  spawnParticles();
+}
+
+function restartGame() {
+  currentStage = 1;
+
+  // reset pips/lines
+  const emojis = ['⚓','🗺️','⚔️','💀'];
+  for (let i = 1; i <= 4; i++) {
+    const p = document.getElementById('pip' + i);
+    p.className = 'pip ' + (i === 1 ? 'active' : 'locked');
+    p.textContent = emojis[i-1];
+  }
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('pline' + i).className = 'pip-line';
+  }
+
+  // reset answers / clues / next buttons
+  for (let s = 2; s <= 4; s++) {
+    const inp = document.getElementById('ans' + s);
+    if (inp) { inp.value = ''; inp.disabled = false; }
+    const err = document.getElementById('err' + s);
+    if (err) err.style.display = 'none';
+    const clue = document.getElementById('clue' + s);
+    if (clue) clue.style.display = 'none';
+    const nb = document.getElementById('next' + s);
+    if (nb) nb.classList.add('hidden');
+  }
+
+  // show stage 1
+  ['stage1','stage2','stage3','stage4','completion'].forEach(id =>
+    document.getElementById(id).classList.add('hidden')
+  );
+  document.getElementById('stage1').classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ─── PARTICLES ─── */
+function spawnParticles() {
+  const colors = ['#f0b429','#ffe08a','#c8882a','#e8a830','#a07840','#7a3a10'];
+  for (let i = 0; i < 50; i++) {
+    setTimeout(() => {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const sz = Math.random() * 9 + 4;
+      p.style.cssText = `
+        left: ${Math.random() * 100}vw; top: -12px;
+        width: ${sz}px; height: ${sz}px;
+        background: ${colors[Math.floor(Math.random() * colors.length)]};
+        border-radius: ${Math.random() > 0.4 ? '50%' : '2px'};
+        animation-duration: ${(Math.random() * 2.5 + 1.5).toFixed(1)}s;
+      `;
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 5000);
+    }, i * 70);
+  }
+}
+</script>
+</body>
+</html>
